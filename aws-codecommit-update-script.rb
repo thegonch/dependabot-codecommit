@@ -8,7 +8,6 @@ require "dependabot/pull_request_creator"
 require "dependabot/omnibus"
 require "aws-sdk-codecommit"
 
-
 credentials = [
   {
     "type" => "git_source",
@@ -19,10 +18,10 @@ credentials = [
 ]
 
 # Full name of the repo you want to create pull requests for.
-#repo_name = ENV["PROJECT_PATH"] # namespace/project
+repo_name = ENV["PROJECT_PATH"] || "sgoncher-dependabot" # namespace/project
 
 # Directory where the base dependency files are.
-#directory = ENV["DIRECTORY_PATH"] || "/"
+directory = ENV["DIRECTORY_PATH"] || "/"
 
 # Name of the package manager you'd like to do the update for. Options are:
 # - bundler
@@ -42,32 +41,22 @@ credentials = [
 # - terraform
 package_manager = ENV["PACKAGE_MANAGER"] || "bundler"
 
-# credentials << {
-#   "type" => "git_source",
-#   "region" => ENV["AWS_REGION"],
-#   "username" => ENV["AWS_ACCESS_KEY_ID"],
-#   "password" => ENV["AWS_SECRET_ACCESS_KEY"]
-# }
-
 source = Dependabot::Source.new(
   provider: "codecommit",
   hostname: ENV["AWS_REGION"],
-  repo: "sgoncher-dependabot",
-  directory: "/",
+  repo: repo_name,
+  directory: directory,
   branch: "master"
 )
 
 ##############################
 # Fetch the dependency files #
 ##############################
-puts "Fetching #{package_manager} dependency files" #for #{repo_name}"
+puts "Fetching #{package_manager} dependency files for #{repo_name}"
 fetcher = Dependabot::FileFetchers.for_package_manager(package_manager).new(
   source: source,
   credentials: credentials,
 )
-
-puts "Credentials: #{credentials}"
-puts "Fetcher Files: #{fetcher.files}"
 
 files = fetcher.files
 commit = fetcher.commit
