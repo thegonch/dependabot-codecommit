@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ -z "$OLD_PATH" ]
+then
+      export OLD_PATH=$PATH
+else
+      export PATH=$OLD_PATH
+fi
+
 rm -Rf $(pwd)/native-helpers
 
 export DEPENDABOT_NATIVE_HELPERS_PATH="$(pwd)/native-helpers"

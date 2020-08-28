@@ -8,6 +8,9 @@ require "dependabot/pull_request_creator"
 require "dependabot/omnibus"
 require "aws-sdk-codecommit"
 
+`./dependabot_vars.sh`
+`./dependabot_helpers.sh`
+
 credentials = [
   {
     "type" => "git_source",
