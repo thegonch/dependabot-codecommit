@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PACKAGE_MANAGER="bundler"
+
 if [ -z "$OLD_PATH" ]
 then
       export OLD_PATH=$PATH
