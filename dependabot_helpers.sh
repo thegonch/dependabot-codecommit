@@ -1,7 +1,6 @@
 #!/bin/bash
 
-export PACKAGE_MANAGER="bundler"
-
+# Preserve the existing path and not let it be appended to infinitely
 if [ -z "$OLD_PATH" ]
 then
       export OLD_PATH=$PATH
@@ -20,7 +19,7 @@ export MIX_HOME="$DEPENDABOT_NATIVE_HELPERS_PATH/hex/mix"
 cp -r $(bundle show dependabot-terraform)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/terraform/helpers
 $DEPENDABOT_NATIVE_HELPERS_PATH/terraform/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/terraform
 
-#Python
+# Python
 cp -r $(bundle show dependabot-python)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/python/helpers
 $DEPENDABOT_NATIVE_HELPERS_PATH/python/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/python
 
