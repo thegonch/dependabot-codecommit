@@ -1,19 +1,8 @@
 #!/bin/bash
 
-# Preserve the existing path and not let it be appended to infinitely
-if [ -z "$OLD_PATH" ]
-then
-      export OLD_PATH=$PATH
-else
-      export PATH=$OLD_PATH
-fi
-
 rm -Rf $(pwd)/native-helpers
 
-export DEPENDABOT_NATIVE_HELPERS_PATH="$(pwd)/native-helpers"
 mkdir -p $DEPENDABOT_NATIVE_HELPERS_PATH/{terraform,python,dep,go_modules,hex,composer,npm_and_yarn}
-export PATH="$PATH:$DEPENDABOT_NATIVE_HELPERS_PATH/terraform/bin:$DEPENDABOT_NATIVE_HELPERS_PATH/python/bin:$DEPENDABOT_NATIVE_HELPERS_PATH/go_modules/bin:$DEPENDABOT_NATIVE_HELPERS_PATH/dep/bin"
-export MIX_HOME="$DEPENDABOT_NATIVE_HELPERS_PATH/hex/mix"
 
 # Terraform
 cp -r $(bundle show dependabot-terraform)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/terraform/helpers

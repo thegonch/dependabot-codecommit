@@ -1,4 +1,9 @@
-# This script is designed to loop through all dependencies in an AWS CodeCommit project, creating PRs where necessary.
+# frozen_string_literal: true
+
+# !/usr/bin/env ruby
+
+# This script is designed to loop through all dependencies in an AWS CodeCommit
+# project, creating PRs where necessary.
 
 require 'dependabot/file_fetchers'
 require 'dependabot/file_parsers'
@@ -8,17 +13,53 @@ require 'dependabot/pull_request_creator'
 # dependabot/omnibus provides support for all languages
 require 'dependabot/omnibus'
 require 'aws-sdk-codecommit'
+require 'optimist'
 
-PACKAGE_MANAGERS = %w[bundler pip npm_and_yarn maven gradle cargo hex composer nuget dep go_modules elm submodules docker terraform github_actions].freeze
+ENV['DEPENDABOT_NATIVE_HELPERS_PATH'] = "#{Dir.pwd}/native-helpers"
+ENV['PATH'] = "#{ENV['PATH']}:#{ENV['DEPENDABOT_NATIVE_HELPERS_PATH']}" \
+              "/terraform/bin:#{ENV['DEPENDABOT_NATIVE_HELPERS_PATH']}" \
+              "/python/bin:#{ENV['DEPENDABOT_NATIVE_HELPERS_PATH']}" \
+              "/go_modules/bin:#{ENV['DEPENDABOT_NATIVE_HELPERS_PATH']}/dep/bin"
+ENV['MIX_HOME'] = "#{ENV['DEPENDABOT_NATIVE_HELPERS_PATH']}/hex/mix"
 
-package_managers = ARGV[0].split
+PACKAGE_MANAGERS = %w[
+  bundler pip npm_and_yarn maven gradle cargo hex composer nuget dep \
+  go_modules elm submodules docker terraform github_actions
+].freeze
 
-if ARGV[0] == 'all'
-  package_managers = PACKAGE_MANAGERS
-elsif !(package_managers - PACKAGE_MANAGERS).empty?
-  raise "ARGUMENT ERROR: First argument contains invalid package managers.  Must be at least one of #{PACKAGE_MANAGERS}.  If more than one, please quote them separated by spaces.\n Example: \"bundler pip\""
+opts = Optimist.options do
+  opt :package_manager_list, 'space-delimited Package Manager(s) to run ' \
+  "against from this list:\n#{PACKAGE_MANAGERS}\n\nCANNOT be used with" \
+  " --all-package-managers\n\nExample: --package-manager-list bundler " \
+  "docker\n ", type: 'strings'
+
+  opt :all_package_managers, 'run against all package managers in ' \
+  "#{PACKAGE_MANAGERS}\n\nCANNOT be used with " \
+  "--package-manager-list\n ", default: false
+
+  opt :project_path, "name of the AWS CodeCommit repository\n ", type: 'string'
+
+  opt :directory_path, "location of the base dependency files\n ", \
+      type: 'string', default: '/'
+
+  opt :codecommit_branch, 'branch of the AWS CodeCommit repository to ' \
+  "check against\n ", type: 'string', default: 'master'
+
+  conflicts :package_manager_list, :all_package_managers
 end
 
+Optimist.die :package_manager_list, 'must be a space-delimited list from' \
+"#{PACKAGE_MANAGERS}" unless opts[:all_package_managers] || \
+                             (!opts[:package_manager_list].nil? && \
+  (opts[:package_manager_list] - PACKAGE_MANAGERS).empty?)
+
+package_managers = if opts[:all_package_managers]
+                     PACKAGE_MANAGERS
+                   else
+                     opts[:package_manager_list]
+                   end
+
+# Create the native helpers
 `./dependabot_helpers.sh`
 
 # Communicate to dependabot-core GitHub repo
@@ -27,22 +68,25 @@ credentials = [
     'type' => 'git_source',
     'host' => 'github.com',
     'username' => 'x-access-token',
-    'password' => ENV['GITHUB_ACCESS_TOKEN'] # A GitHub access token with read access to public repos
+    'password' => ENV['GITHUB_ACCESS_TOKEN'] # read access to repos
   }
 ]
 
 # Full name of the repo you want to create pull requests for.
-repo_name = ENV['PROJECT_PATH'] || 'sgoncher-dependabot' # namespace/project
+repo_name = opts[:project_path]
 
 # Directory where the base dependency files are.
-directory = ENV['DIRECTORY_PATH'] || '/'
+directory = opts[:directory_path]
+
+# Branch of CodeCommit to check
+codecommit_branch = opts[:codecommit_branch]
 
 source = Dependabot::Source.new(
   provider: 'codecommit',
   hostname: ENV['AWS_REGION'],
   repo: repo_name,
   directory: directory,
-  branch: 'master'
+  branch: codecommit_branch
 )
 package_managers.each do |package_manager|
   ##############################
@@ -117,9 +161,7 @@ package_managers.each do |package_manager|
       base_commit: commit,
       dependencies: updated_deps,
       files: updated_files,
-      credentials: credentials,
-      assignees: [(ENV['PULL_REQUESTS_ASSIGNEE'])&.to_i],
-      label_language: true
+      credentials: credentials
     )
     pull_request = pr_creator.create
     puts ' submitted'
