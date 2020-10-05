@@ -1,8 +1,6 @@
-# Dependabot Update Script [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&identifier=131328855)](https://dependabot.com)
+# Dependabot Update Script for AWS CodeCommit
 
-This repo contains two scripts that demonstrates
-[Dependabot Core][dependabot-core]. It is intended to give you a feel for how
-Dependabot Core works so that you can use it in your own project.
+This repo is a fork of [Dependabot Script][dependabot-script]
 
 If you're looking for a hosted, feature-rich dependency updater then you
 probably want [Dependabot][dependabot] itself.
