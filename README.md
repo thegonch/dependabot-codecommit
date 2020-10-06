@@ -29,7 +29,9 @@ This also helps preserve your existing environment variables, including your `PA
     github token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with full `repo` access.
   * An environment variable named `AWS_REGION` that passes in the name of the
     AWS Region, i.e. `us-east-1`
-  * An AWS authentication that allows for CodeCommit access including:
+  * An AWS authentication (this script was run under the assumptive usage of
+    [aws-vault](https://github.com/99designs/aws-vault)) that has permissions allowing
+    CodeCommit access including:
     * ListPullRequests
     * BatchGetCommits
     * GetBranch
@@ -48,7 +50,7 @@ To execute, run the script as follows from the command prompt:
 
 | Option Name   | Value   |   Required |
 | ------------- | ----------------------- | ---- |
-| -p, --package-manager-list  | space-delimited package manager(s) to run against from this list:`["bundler", "pip", "npm_and_yarn", "maven", "gradle", "cargo", "hex", "composer", "nuget", "dep", "\n", "go_modules", "elm", "submodules", "docker", "terraform", "github_actions"]` | yes (this OR --all-package-managers)
+| -p, --package-manager-list  | space-delimited package manager(s) to run against from this list:`bundler pip npm_and_yarn maven gradle cargo hex composer nuget dep go_modules elm submodules docker terraform github_actions` | yes (this OR --all-package-managers)
 | -a, --all-package-managers     | run against all package managers (CANNOT be used with --package-manager-list)             | yes (this OR --package-manager-list)
 | -r, --project-path  | name of the AWS CodeCommit repository | yes
 | -d, --directory-path |  location of the base dependency files (default: /)     | no
