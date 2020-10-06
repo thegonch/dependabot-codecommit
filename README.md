@@ -2,139 +2,60 @@
 
 This repo is a fork of [Dependabot Script][dependabot-script]
 
-If you're looking for a hosted, feature-rich dependency updater then you
-probably want [Dependabot][dependabot] itself.
-
 ## Setup and usage
 
 * `rbenv install` (Install Ruby version from `.ruby-version`)
 * `bundle install`
 
-### Native helpers
+### Native helpers with `dependabot_helpers.sh`
 
-Languages that require native helpers to be installed: Terraform, Python, Go (Dep & Modules), Elixir, PHP, JS
+The Bash script [`dependabot_helpers.sh`][dependabot_helpers.sh] helps automate the installation of the
+Dependabot Native Helpers as described
+[here](https://github.com/dependabot/dependabot-script#native-helpers).
 
-To install the native helpers, export an environment variable that points to the
-directory into which the helpers should be installed and add the relevant bins
-to your PATH:
+It is designed to be run from within
+[`aws_codecommit_update_script.rb`][aws_codecommit_update_script.rb] since this
+ruby script will first set up the required environment variables.
 
-* `export DEPENDABOT_NATIVE_HELPERS_PATH="$(pwd)/native-helpers"`
-* `mkdir -p $DEPENDABOT_NATIVE_HELPERS_PATH/{terraform,python,dep,go_modules,hex,composer,npm_and_yarn}`
-* `export PATH="$PATH:$DEPENDABOT_NATIVE_HELPERS_PATH/terraform/bin:$DEPENDABOT_NATIVE_HELPERS_PATH/python/bin:$DEPENDABOT_NATIVE_HELPERS_PATH/go_modules/bin:$DEPENDABOT_NATIVE_HELPERS_PATH/dep/bin"`
-* `export MIX_HOME="$DEPENDABOT_NATIVE_HELPERS_PATH/hex/mix"`
+It is currently designed to install all possible native helpers, which includes:
+Terraform, Python, Go (Dep & Modules), Elixir, PHP, JS
 
-Copy the relevant helpers from the gem source to the new install location
+This also helps preserve your existing environment variables, including your `PATH`.
 
-| Language   | Command                                                                                                  |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| Terraform  | `cp -r $(bundle show dependabot-terraform)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/terraform/helpers`       |
-| Python     | `cp -r $(bundle show dependabot-python)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/python/helpers`             |
-| Go Dep     | `cp -r $(bundle show dependabot-dep)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/dep/helpers`                   |
-| Go Modules | `cp -r $(bundle show dependabot-go_modules)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/go_modules/helpers`     |
-| Elixir     | `cp -r $(bundle show dependabot-hex)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/hex/helpers`                   |
-| PHP        | `cp -r $(bundle show dependabot-composer)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/composer/helpers`         |
-| JS         | `cp -r $(bundle show dependabot-npm_and_yarn)/helpers $DEPENDABOT_NATIVE_HELPERS_PATH/npm_and_yarn/helpers` |
+### Running `aws_codecommit_update_script.rb`
 
-Build the helpers you want to use (you'll also need the corresponding language installed)
+* Please note the following pre-requisites before running this script
+  * An environment variable named `GITHUB_ACCESS_TOKEN` that contains a [personal
+    github token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) with full `repo` access.
+  * An environment variable named `AWS_REGION` that passes in the name of the
+    AWS Region, i.e. `us-east-1`
+  * An AWS authentication that allows for CodeCommit access including:
+    * ListPullRequests
+    * BatchGetCommits
+    * GetBranch
+    * GetCommit
+    * GetFile
+    * GetFolder
+    * GetPullRequest
+    * GetRepository
+    * CreateBranch
+    * CreateCommit
+    * CreatePullRequest
 
-| Language   | Command                                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------- |
-| Terraform  | `$DEPENDABOT_NATIVE_HELPERS_PATH/terraform/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/terraform`       |
-| Python     | `$DEPENDABOT_NATIVE_HELPERS_PATH/python/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/python`             |
-| Go Dep     | `$DEPENDABOT_NATIVE_HELPERS_PATH/dep/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/dep`                   |
-| Go Modules | `$DEPENDABOT_NATIVE_HELPERS_PATH/go_modules/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/go_modules`     |
-| Elixir     | `$DEPENDABOT_NATIVE_HELPERS_PATH/hex/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/hex`                   |
-| PHP        | `$DEPENDABOT_NATIVE_HELPERS_PATH/composer/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/composer`         |
-| JS         | `$DEPENDABOT_NATIVE_HELPERS_PATH/npm_and_yarn/helpers/build $DEPENDABOT_NATIVE_HELPERS_PATH/npm_and_yarn` |
+To execute, run the script as follows from the command prompt:
 
-### Running `update-script.rb`
+ `ruby aws_codecommit_update_script.rb [options]`
 
-* `bundle exec irb`
-* Edit the variables at the top of the script you're using, or set the corresponding environment variables.
-* Copy and paste the script into the Ruby session to see how Dependabot works.
+| Option Name   | Value   |   Required |
+| ------------- | ----------------------- | ---- |
+| -p, --package-manager-list  | space-delimited package manager(s) to run against from this list:`["bundler", "pip", "npm_and_yarn", "maven", "gradle", "cargo", "hex", "composer", "nuget", "dep", "\n", "go_modules", "elm", "submodules", "docker", "terraform", "github_actions"]` | yes (this OR --all-package-managers)
+| -a, --all-package-managers     | run against all package managers (CANNOT be used with --package-manager-list)             | yes (this OR --package-manager-list)
+| -r, --project-path  | name of the AWS CodeCommit repository | yes
+| -d, --directory-path |  location of the base dependency files (default: /)     | no
+|  -c, --codecommit-branch     | branch of the AWS CodeCommit repository to check against (default: master) | no
 
 If you run into any trouble with the above please create an issue!
 
-#### Running script with Docker
-
-If you don't want to setup the machine where the script will be executed, you could run the script within
-a `dependabot/dependabot-core` container.
-In order to do that, you'll have to pull the image from Docker Hub and mount your working directory into the container.
-You'll also have to set several environment variables to make the script work with your configuration, 
-as specified in the documentation.
-
-Steps:
-
-1. Pull dependabot-core Docker image
-
-```shell
-$ docker pull dependabot/dependabot-core
-```
-
-2. Install dependencies
-
-```shell
-docker run -v "$(pwd):/home/dependabot/dependabot-script" -w /home/dependabot/dependabot-script dependabot/dependabot-core bundle install -j 3 --path vendor
-```
-
-3. Run dependabot
-
-```shell
-docker run -v "$(pwd):/home/dependabot/dependabot-script" -w /home/dependabot/dependabot-script -e ENV_VARIABLE=value dependabot/dependabot-core bundle exec ruby ./generic-update-script.rb
-```
-
-You'll have to pass the right environment variables to make the script work with your configuration. You can find how to pass environment variables to your container in [Docker run reference](https://docs.docker.com/engine/reference/run/#env-environment-variables).
-
-You'll have to set some mandatory variables like `PROJECT_PATH` and `PACKAGE_MANAGER` (see [script](https://github.com/dependabot/dependabot-script/blob/master/generic-update-script.rb) to know more).
-There are other variables that you must pass to your container that will depend on the Git source you use:
-
-* Github
-    * GITHUB_ACCESS_TOKEN
-* Github Enterprise
-    * GITHUB_ENTERPRISE_HOSTNAME
-    * GITHUB_ENTERPRISE_ACCESS_TOKEN
-* Gitlab
-    * GITLAB_HOSTNAME: default value `gitlab.com`
-    * GITLAB_ACCESS_TOKEN
-* Azure DevOps
-    * AZURE_HOSTNAME: default value `dev.azure.com`
-    * AZURE_ACCESS_TOKEN
-    * PROJECT_PATH: `organization/project/_git/package-name`
-
-
-If everything goes well you should be able to see something like:
-
-```shell
-/home/dependabot/dependabot-script# ./generic-update-script.rb
-Fetching gradle dependency files for myorganisation/project
-Parsing dependencies information
-...
-```
-
-### GitLab CI
-
-The easiest configuration is to have a repository dedicated to the script.
-Many pipeline schedules can be added on that single repo to manage multiple projects.  
-Thus `https://[gitlab.domain/org/dependabot-script-repo]/pipeline_schedules` dashboard becomes your own dependabot admin interface.
-
-* Clone or mirror this repository.
-* Copy `.gitlab-ci.example.yml` to `.gitlab-ci.yml` or set [a custom CI config path for direct usage](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#custom-ci-config-path).
-* [Set the required global variables](https://docs.gitlab.com/ee/ci/variables/#variables) used in [`./generic-update-script.rb`][generic-script].
-* Create [a pipeline schedule](https://docs.gitlab.com/ee/user/project/pipelines/schedules.html) for each managed repository.
-* Set in the schedule the required variables:
-  * `PROJECT_PATH`: `group/repository`
-  * `PACKAGE_MANAGER_SET`: `bundler,composer,npm_and_yarn`
-* If you'd like to specify the directory that contains the manifest file in the repository, you can set the following environment variable:
-  * `DIRECTORY_PATH`: `/path/to/point`
-* If you'd like Merge Requests to be assigned to a user, set the following environment variable:
-  * `PULL_REQUESTS_ASSIGNEE`: Integer ID of the user to assign. This can be found at `https://gitlab.com/api/v4/users?username=<your username>`
-
-## The scripts
-
-* [Single dependency update script][github-script]
-* [GitLab/GHE update script][generic-script]
-
-[github-script]: update-script.rb
-[generic-script]: generic-update-script.rb
-[dependabot-core]: https://github.com/dependabot/dependabot-core
-[dependabot]: https://dependabot.com
+[dependabot-script]: https://github.com/dependabot/dependabot-script
+[dependabot_helpers.sh]: dependabot_helpers.sh
+[aws_codecommit_update_script.rb]: aws_codecommit_update_script.rb
