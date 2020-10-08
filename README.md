@@ -44,7 +44,7 @@ This also helps preserve your existing environment variables, including your `PA
     * CreateCommit
     * CreatePullRequest
 
-To execute, run the script as follows from the command prompt:
+### To execute, run the script as follows from the command prompt:
 
  `ruby aws_codecommit_update_script.rb [options]`
 
